@@ -1,10 +1,3 @@
-/**
- * Copyright 2015, GeoSolutions Sas.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
 
 var Layers = require('../../../../utils/openlayers/Layers');
 var ol = require('openlayers');
@@ -20,8 +13,7 @@ function wmsToOpenlayersOptions(options) {
     return objectAssign({}, options.baseParams, {
         LAYERS: options.name,
         STYLES: options.style || "",
-        FORMAT: options.format || 'image/png',
-        TRANSPARENT: options.transparent !== undefined ? options.transparent : true,
+        FORMAT: options.format || 'application/x-protobuf;type=mapbox-vector',
         SRS: CoordinatesUtils.normalizeSRS(options.srs),
         CRS: CoordinatesUtils.normalizeSRS(options.srs),
         TILED: options.tiled || false,
@@ -43,38 +35,57 @@ function proxyTileLoadFunction(imageTile, src) {
     imageTile.getImage().src = newSrc;
 }
 
-Layers.registerType('wms', {
+Layers.registerType('vectortile', {
     create: (options) => {
+        const projectionExtent = [140000, 160000, 160000, 180000];
+         var size = ol.extent.getWidth(projectionExtent) / 256;
+         var resolutions =  [49,42,28,21,14,7,5.6,3.5,2.8,2.1,1.4,0.7,0.56,0.28];
+
         const urls = getWMSURLs(isArray(options.url) ? options.url : [options.url]);
         const queryParameters = wmsToOpenlayersOptions(options) || {};
         urls.forEach(url => SecurityUtils.addAuthenticationParameter(url, queryParameters));
-        if (options.singleTile) {
-            return new ol.layer.Image({
-                opacity: options.opacity !== undefined ? options.opacity : 1,
-                visible: options.visibility !== false,
-                zIndex: options.zIndex,
-                source: new ol.source.ImageWMS({
-                    url: urls[0],
-                    params: queryParameters
-                })
-            });
+
+        function tileUrlFunction(tileCoord) {
+          return (options.url + options.name + '@EPSG%3A31370' + '@pbf/{z}/{x}/{y}.pbf')
+              .replace('{z}', String(tileCoord[0]))
+              .replace('{x}', String(tileCoord[1]))
+              .replace('{y}', String((1 << tileCoord[0]) - tileCoord[2] - 1)) ;
         }
+
+        return new ol.layer.VectorTile({
+            opacity: options.opacity !== undefined ? options.opacity : 1,
+            visible: options.visibility !== false,
+            zIndex: options.zIndex,
+            source: new ol.source.VectorTile(objectAssign({
+                format: new ol.format.MVT({
+                    defaultProjection: 'EPSG:31370'
+                }),
+                //tilePixelRatio: 16, // oversampling when > 1
+
+                tileGrid: new ol.tilegrid.TileGrid({
+                    extent: projectionExtent,
+                    resolutions : resolutions
+                }),
+                projection: 'EPSG:31370',
+                tileUrlFunction: tileUrlFunction
+                //EX: /geoserver/gwc/service/tms/1.0.0/BDU:Communes@EPSG%3A31370@pbf/{z}/{x}/{y}.pbf
+                //url: options.url + options.name + '@EPSG%3A31370' + '@pbf/{z}/{x}/{-y}.pbf'
+            }))
+        });
+        /*
         return new ol.layer.Tile({
             opacity: options.opacity !== undefined ? options.opacity : 1,
             visible: options.visibility !== false,
             zIndex: options.zIndex,
             source: new ol.source.TileWMS(objectAssign({
               urls: urls,
-              params: queryParameters,
-              tileGrid: new ol.tilegrid.TileGrid({
-
-                  extent: [140000, 160000, 160000, 180000],
-                  resolutions: [49.0, 42.0, 28.0, 21.0, 14.0, 7.0, 5.6, 3.5, 2.8, 2.1, 1.4, 0.7, 0.56, 0.28, 0.14, 0.07, 0.056, 0.035, 0.028, 0.014]
-              })
+              params: queryParameters
             }, (options.forceProxy) ? {tileLoadFunction: proxyTileLoadFunction} : {}))
         });
+        */
     },
     update: (layer, newOptions, oldOptions) => {
+        /*
         if (oldOptions && layer && layer.getSource() && layer.getSource().updateParams) {
             let changed = false;
             if (oldOptions.params && newOptions.params) {
@@ -100,5 +111,6 @@ Layers.registerType('wms', {
                 layer.getSource().updateParams(objectAssign(newParams, newOptions.params));
             }
         }
+        */
     }
 });

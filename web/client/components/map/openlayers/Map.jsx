@@ -88,6 +88,7 @@ var OpenlayersMap = React.createClass({
               collapsible: false
             })
         }, this.props.mapOptions.controls));
+
         let map = new ol.Map({
           layers: [],
           controls: controls,

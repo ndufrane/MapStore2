@@ -132,7 +132,8 @@ function getResolutions() {
 function getScales(projection, dpi) {
     const units = CoordinatesUtils.getUnits(projection);
     const dpm = dpi2dpm((dpi || DEFAULT_SCREEN_DPI));
-    return getResolutions().map((resolution) => resolution * dpm * (units === 'degrees' ? 111194.87428468118 : 1));
+    const resolutions = getResolutions();
+    return resolutions.map((resolution) => resolution * dpm * (units === 'degrees' ? 111194.87428468118 : 1));
 }
 
 function defaultGetZoomForExtent(extent, mapSize, minZoom, maxZoom, dpi, mapResolutions) {

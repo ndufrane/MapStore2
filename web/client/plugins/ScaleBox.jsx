@@ -19,10 +19,9 @@ const ScaleBox = require("../components/mapcontrols/scale/ScaleBox");
 
 const mapUtils = require('../utils/MapUtils');
 
-
 const selector = createSelector([mapSelector], (map) => ({
     currentZoomLvl: map && map.zoom,
-    scales: mapUtils.getScales(map && map.projection || 'EPSG:3857')
+    scales : mapUtils.getScales(map && map.projection || 'EPSG:3857', 25.4/0.28)
 }));
 
 require('./scalebox/scalebox.css');
