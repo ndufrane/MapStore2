@@ -111,8 +111,10 @@ const DrawSupport = React.createClass({
                     geometry = new ol.geom.LineString(geom.coordinates); break;
                 }
                 case "Polygon": {
-                    geometry = geom.radius && geom.center ?
-                    ol.geom.Polygon.fromCircle(new ol.geom.Circle([geom.center.x, geom.center.y], geom.radius), 100) : new ol.geom.Polygon(geom.coordinates);
+                    geometry = new ol.geom.Polygon(geom.coordinates); break;
+                }
+                case "MultiPolygon": {
+                    geometry = new ol.geom.MultiPolygon(geom.coordinates); break;
                 }
                 default: {
                     geometry = geom.radius && geom.center ?
@@ -128,7 +130,7 @@ const DrawSupport = React.createClass({
     },
     replaceFeatures: function(newProps) {
         if (!this.drawLayer) {
-            this.addLayer(newProps, true);
+            this.addLayer(newProps, false);
         } else {
             this.drawSource.clear();
             this.addFeatures(newProps.features || []);
